@@ -151,17 +151,7 @@ class SacSacAnimator:
             del (self.fig, self.ax, self.cond_slider, self.vel_slider, self.time_slider)
         if "gridspec_kw" not in plot_kwargs:
             plot_kwargs["gridspec_kw"] = {
-                "height_ratios": [
-                    0.15,
-                    0.033,
-                    0.033,
-                    0.033,
-                    0.15,
-                    0.15,
-                    0.15,
-                    0.15,
-                    0.15,
-                ],
+                "height_ratios": [0.15, 0.033, 0.033, 0.033, 0.15, 0.15, 0.15, 0.15,],
                 "hspace": 0.65,
             }
         self.fig, self.ax = plt.subplots(8, **plot_kwargs)
@@ -369,7 +359,7 @@ class SacSacAnimator:
             del (self.fig, self.ax, self.cond_slider, self.vel_slider, self.time_slider)
         if "gridspec_kw" not in plot_kwargs:
             plot_kwargs["gridspec_kw"] = {
-                "height_ratios": [0.1666, 0.1666, 0.1666, 0.1666, 0.1666, 0.1666],
+                "height_ratios": [0.1666, 0.1666, 0.1666, 0.1666, 0.1666],
                 "hspace": 0.2,
             }
         self.fig, self.ax = plt.subplots(5, **plot_kwargs)
