@@ -88,13 +88,6 @@ class SacSacAnimator:
                     1,  # ps["dend_diam"],
                     fill=True,
                 ),
-                "gaba": patches.Arrow(
-                    ps["gaba_x_loc"],
-                    ps["origin"][1] + self.y_off[n],
-                    0,
-                    self.y_off[n] * -1.5,
-                    width=10,
-                ),
                 "bps": {
                     k: [
                         patches.Rectangle(
@@ -171,14 +164,13 @@ class SacSacAnimator:
                 ],
                 "hspace": 0.65,
             }
-        self.fig, self.ax = plt.subplots(9, **plot_kwargs)
+        self.fig, self.ax = plt.subplots(8, **plot_kwargs)
         (
             self.scheme_ax,
             self.cond_slide_ax,
             self.vel_slide_ax,
             self.time_slide_ax,
             self.bp_g_ax,
-            self.gaba_g_ax,
             self.term_cai_ax,
             self.term_vm_ax,
             self.soma_vm_ax,
@@ -188,7 +180,6 @@ class SacSacAnimator:
         self.build_time_slide_ax()
         self.build_term_vm_ax()
         self.build_soma_vm_ax()
-        self.build_gaba_g_ax()
         self.build_bp_g_ax()
         self.build_term_cai_ax()
         self.build_scheme_ax()
@@ -283,18 +274,6 @@ class SacSacAnimator:
             self.soma_vm_ax, "soma", "v", -70, -35, "Time (ms)", "Soma Voltage (mV)"
         )
 
-    def build_gaba_g_ax(self):
-        self.gaba_g_lines, self.gaba_g_t_marker = self.build_rec_ax(
-            self.gaba_g_ax,
-            "combined_gaba",
-            "g",
-            0,
-            self.max_exps[self.cond]["combined_gaba"]["g"],
-            ylbl="GABA Conductance (μS)",
-        )
-        self.gaba_g_ax.set_xticklabels([])
-        self.gaba_g_ax.get_shared_x_axes().join(self.gaba_g_ax, self.soma_vm_ax)
-
     def build_bp_g_ax(self):
         self.bp_g_lines, self.bp_g_t_marker = self.build_rec_ax(
             self.bp_g_ax,
@@ -356,7 +335,6 @@ class SacSacAnimator:
         self.update_rec(self.term_vm_lines, self.term_vm_t_marker, "term", "v")
         self.update_rec(self.soma_vm_lines, self.soma_vm_t_marker, "soma", "v")
         self.update_rec(self.term_cai_lines, self.term_cai_t_marker, "term", "cai")
-        self.update_rec(self.gaba_g_lines, self.gaba_g_t_marker, "combined_gaba", "g")
         self.update_rec(self.bp_g_lines, self.bp_g_t_marker, "combined_bps", "g")
 
     def update_scheme(self):
@@ -377,15 +355,6 @@ class SacSacAnimator:
                     / (maxs["term"]["v"] - mins["term"]["v"] + 0.00001)
                 )
             )
-            # GABA arrow coming from pre-synaptic side, so flip n
-            s["gaba"].set_color(
-                self.cmap(
-                    ex["combined_gaba"]["b" if n == "a" else "a"]["g"][
-                        self.vel_idx, self.t_idx
-                    ]
-                    / (maxs["combined_gaba"]["g"] + 0.00001)
-                )
-            )
             for k, bps in s["bps"].items():
                 for i, b in enumerate(bps):
                     b.set_color(
@@ -403,18 +372,16 @@ class SacSacAnimator:
                 "height_ratios": [0.1666, 0.1666, 0.1666, 0.1666, 0.1666, 0.1666],
                 "hspace": 0.2,
             }
-        self.fig, self.ax = plt.subplots(6, **plot_kwargs)
+        self.fig, self.ax = plt.subplots(5, **plot_kwargs)
         (
             self.scheme_ax,
             self.bp_g_ax,
-            self.gaba_g_ax,
             self.term_cai_ax,
             self.term_vm_ax,
             self.soma_vm_ax,
         ) = self.ax
         self.build_term_vm_ax()
         self.build_soma_vm_ax()
-        self.build_gaba_g_ax()
         self.build_bp_g_ax()
         self.build_term_cai_ax()
         self.build_scheme_ax()
@@ -460,7 +427,6 @@ def ball_sticks(
     sust_colour="red",
     trans_colour="blue",
     bp_alpha=0.5,
-    incl_gaba=True,
 ):
     solo = len(y_off) == 1
 
@@ -501,13 +467,6 @@ def ball_sticks(
                 1,  # ps["dend_diam"],
                 fill=True,
             ),
-            "gaba": patches.Arrow(
-                ps["gaba_x_loc"],
-                ps["origin"][1] + y_off[n],
-                0,
-                y_off[n] * -1.5,
-                width=10,
-            ),
             "bps": {
                 k: [
                     patches.Rectangle(
@@ -529,9 +488,8 @@ def ball_sticks(
 
     def loop(ps):
         if type(ps) == dict:
-            for k, p in ps.items():
-                if incl_gaba or k != "gaba":
-                    loop(p)
+            for p in ps.values():
+                loop(p)
         elif type(ps) == list:
             for p in ps:
                 loop(p)
