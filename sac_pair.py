@@ -1,4 +1,3 @@
-# from neuron import h, gui
 from neuron import h
 
 h.load_file("stdgui.hoc")  # headless, still sets up environment
@@ -91,7 +90,6 @@ class Sac:
         self.soma_kv3_3 = 0.0
 
         self.soma_gleak_hh = 0.0001667  # [S/cm2]
-        # self.soma_eleak_hh = -70.0  # [mV]
         self.soma_eleak_hh = -54.4  # [mV]
 
         # dend compartment active properties
@@ -104,48 +102,18 @@ class Sac:
         self.dend_na = 0.00  # [S/cm2] .03
         self.dend_k = 0.0
         self.dend_km = 0.0
-        self.dend_kv3 = 0.0
-        self.dend_kv3_1 = 0.0
-        self.dend_kv3_3 = 0.0
-        self.dend_can = 0.0003
-        self.dend_canrgc = 0.0
-        self.dend_cap = 0.0002
-        self.dend_carMed = 0.0
         self.dend_nav1_8 = 0.0
-        # self.dend_canLindroos = 0.0
-        # self.dend_caqLindroos = 0.0
-        # self.dend_carLindroos = 0.0
         self.dend_gleak_hh = 0.0001667  # [S/cm2]
-        # self.dend_eleak_hh = -70.0  # [mV]
         self.dend_eleak_hh = -54.4  # [mV]
 
         self.term_na = 0.0
         self.term_k = 0.0  # [S/cm2]
         self.term_km = 0.0  # [S/cm2]
-        self.term_kv3 = 0.0
-        self.term_kv3_1 = 0.0
-        self.term_kv3_3 = 0.0
-        self.term_cat = 0.000
-        self.term_cal = 0.0
-        self.term_can = 0.0003
-        self.term_canrgc = 0.0
-        self.term_cap = 0.0003
-        self.term_carMed = 0.0
-        # self.term_canLindroos = 0.0
-        # self.term_caqLindroos = 0.0
-        # self.term_carLindroos = 0.0
         self.term_nav1_8 = 0.0
-        self.term_nav1_9 = 0.0
-
-        # sink dendrite parameters
-        self.sink_dend_locs = [35, 65, 95, 125]
-        self.sink_orders = [4, 3, 2, 1]
-        self.sink_branch_len = 20
-        self.sink_nseg = 1
 
         # membrane noise
-        self.dend_nz_factor = 0.0  # .1  # default NF_HHst = 1
-        self.soma_nz_factor = 0.0  # .1
+        self.dend_nz_factor = 0.0
+        self.soma_nz_factor = 0.0
 
         self.bp_jitter = 0
         self.bp_locs = {"sust": [5], "trans": [25, 45, 65]}
@@ -181,28 +149,6 @@ class Sac:
             },
         }
 
-        self.vel_scaling = False
-        self.bp_vel_scaling = {
-            "sust": {
-                "weight": (lambda v, w: w - (np.clip(v / 4, 0, 1) * w * 0.5)),
-                "tau1": (lambda v, t1: t1),
-                "tau2": (lambda v, t2: t2),
-            },
-            "trans": {
-                "weight": (lambda v, w: w - (np.clip(v / 4, 0, 1) * w * 0.5)),
-                "tau1": (lambda v, t1: t1),
-                "tau2": (lambda v, t2: t2),
-            },
-        }
-
-        self.gaba_props = {
-            "locs": [15],  # distance from soma [um]
-            "rev": -60,  # inhibitory reversal potential [mV]
-            "weight": 0.02,  # cai conversion (g = k * capre^3) [uS/mM3]
-            "order": 3,
-        }
-        self.gaba_vel_scaling = lambda _, w: w
-
     def update_params(self, params):
         """Update self members with key-value pairs from supplied dict."""
         for k, v in params.items():
@@ -217,14 +163,11 @@ class Sac:
             "initial",
             "dend",
             "term",
-            "sinks",
             "all_dends",
             "bps",
             "rand",
             "np_rng",
             "bp_loc_scaling",
-            "bp_vel_scaling",
-            "gaba_vel_scaling",
             "bp_releasers",
         ]:
             params.pop(key)
@@ -240,59 +183,14 @@ class Sac:
 
         soma.insert("HHst")
         soma.insert("cad")
-        soma.insert("Kv3")
-        soma.insert("HT")
-        soma.insert("Kv3_3")
         soma.gnabar_HHst = self.soma_na
         soma.gkbar_HHst = self.soma_k
         soma.gkmbar_HHst = self.soma_km
-        soma.gbar_Kv3 = self.soma_kv3
-        soma.gbar_HT = self.soma_kv3_1
-        soma.gbar_Kv3_3 = self.soma_kv3_3
         soma.gleak_HHst = self.soma_gleak_hh
         soma.eleak_HHst = self.soma_eleak_hh
         soma.NF_HHst = self.soma_nz_factor
 
         return soma
-
-    def sink_branch(self, name, n_orders):
-
-        head = nrn_section("branch_%s_head_%s" % (name, self.name))
-        last = [[(head, "")]]
-        all_secs = [head]
-        n = 1
-        while n < n_orders:
-            next = []
-            for branch in last:
-                for (sec, lbl) in branch:
-                    left = nrn_section("branch_%s%s_l_%s" % (name, lbl, self.name))
-                    right = nrn_section("branch%s%s_r_%s" % (name, lbl, self.name))
-                    left.connect(sec)
-                    right.connect(sec)
-                    next.append([(left, lbl + "_l"), (right, lbl + "_r")])
-                    all_secs.append(left)
-                    all_secs.append(right)
-            last = next
-            n += 1
-
-        for sec in all_secs:
-            sec.nseg = self.sink_nseg
-            sec.Ra = self.dend_ra
-            sec.insert("HHst")
-            sec.insert("cad")
-            sec.insert("nav1p8")
-            sec.insert("Kv3_3")
-            sec.gleak_HHst = self.dend_gleak_hh  # (S/cm2)
-            sec.eleak_HHst = self.dend_eleak_hh
-            sec.NF_HHst = self.dend_nz_factor
-            sec.seed_HHst = self.nz_seed
-            sec.diam = self.dend_diam
-            sec.L = self.sink_branch_len
-            sec.gtbar_HHst = 0
-            sec.glbar_HHst = 0
-            sec.gnabar_HHst = 0
-
-        return head, all_secs
 
     def create_dend(self):
         initial = nrn_section("initial_%s" % (self.name))
@@ -305,9 +203,6 @@ class Sac:
             s.Ra = self.dend_ra
             s.insert("HHst")
             s.insert("cad")
-            s.insert("Kv3")
-            s.insert("HT")
-            s.insert("Kv3_3")
             s.gleak_HHst = self.dend_gleak_hh  # (S/cm2)
             s.eleak_HHst = self.dend_eleak_hh
             s.NF_HHst = self.dend_nz_factor
@@ -329,100 +224,32 @@ class Sac:
         # non terminal potassium densities
         initial.gkbar_HHst = self.initial_k
         initial.gkmbar_HHst = self.initial_km
-        initial.gbar_Kv3 = self.initial_kv3
-        initial.gbar_HT = self.initial_kv3_1
-        initial.gbar_Kv3_3 = self.initial_kv3_3
         dend.gkbar_HHst = self.dend_k
         dend.gkmbar_HHst = self.dend_km
-        dend.gbar_Kv3 = self.dend_kv3
-        dend.gbar_HT = self.dend_kv3_1
-        dend.gbar_Kv3_3 = self.dend_kv3_3
-        term.gkbar_HHst = self.term_k
-        term.gkmbar_HHst = self.term_km
-        term.gbar_Kv3 = self.dend_kv3
-        term.gbar_HT = self.term_kv3_1
-        term.gbar_Kv3_3 = self.term_kv3_3
-
-        dend.insert("can")
-        dend.insert("canrgc")
-        dend.insert("newCaP1")
-        # dend.insert("carMed")
-        # dend.insert("canLindroos")
-        # dend.insert("caqLindroos")
-        # dend.insert("carLindroos")
-        dend.gcanbar_can = self.dend_can
-        dend.gbar_canrgc = self.dend_canrgc
-        dend.pcabar_newCaP1 = self.dend_cap
-        # dend.gcabar_carMed = self.dend_carMed
-        # dend.pbar_canLindroos = self.dend_canLindroos
-        # dend.pbar_caqLindroos = self.dend_caqLindroos
-        # dend.pbar_carLindroos = self.dend_carLindroos
         dend.insert("nav1p8")
         dend.gbar_nav1p8 = self.dend_nav1_8
+        term.gkbar_HHst = self.term_k
+        term.gkmbar_HHst = self.term_km
+        term.insert("nav1p8")
+        term.gbar_nav1p8 = self.term_nav1_8
 
         # terminal active properties
-        term.insert("can")
-        term.insert("canrgc")
-        term.insert("newCaP1")
-        # term.insert("carMed")
-        # term.insert("canLindroos")
-        # term.insert("caqLindroos")
-        # term.insert("carLindroos")
         term.gnabar_HHst = self.term_na
         term.gtbar_HHst = self.term_cat
         term.glbar_HHst = self.term_cal
         term.gtbar_HHst = self.term_cat
         term.glbar_HHst = self.term_cal
-        term.gcanbar_can = self.term_can
-        term.gbar_canrgc = self.term_canrgc
-        term.pcabar_newCaP1 = self.term_cap
-        # term.gcabar_carMed = self.term_carMed
-        # term.pbar_canLindroos = self.term_canLindroos
-        # term.pbar_caqLindroos = self.term_caqLindroos
-        # term.pbar_carLindroos = self.term_carLindroos
-        term.insert("nav1p8")
-        # term.insert("nav1p9")
-        term.gbar_nav1p8 = self.term_nav1_8
-        # term.gbar_nav1p9 = self.term_nav1_9
 
         dend.connect(initial)
         term.connect(dend)
 
-        all_sinks = []
-        for (loc, n_orders) in zip(self.sink_dend_locs, self.sink_orders):
-            pos = np.round(max(0, loc - self.initial_dend_l) / self.dend_l, decimals=5)
-            sink, _ = self.sink_branch(str(loc), n_orders)
-            sink.connect(dend(pos))
-            all_sinks.append(sink)
-
-        return initial, dend, term, all_sinks
+        return initial, dend, term
 
     def create_synapses(self):
-        # create *named* hoc objects for each synapse (for gui compatibility)
-        # h(
-        #     "objref sust_bps_%s[%i], trans_bps_%s[%i]"
-        #     % (
-        #         self.name,
-        #         len(self.bp_locs["sust"]),
-        #         self.name,
-        #         len(self.bp_locs["trans"]),
-        #     )
-        # )
-
         # complete synapses are made up of a NetStim, Syn, and NetCon
         self.bps = {
-            "sust": {
-                # "stim": [],
-                # "syn": getattr(h, "sust_bps_%s" % self.name),
-                "syn": [],
-                "con": [],
-            },
-            "trans": {
-                # "stim": [],
-                # "syn": getattr(h, "trans_bps_%s" % self.name),
-                "syn": [],
-                "con": [],
-            },
+            "sust": {"syn": [], "con": [],},
+            "trans": {"syn": [], "con": [],},
         }
 
         for (k, syns), locs, props in zip(
@@ -451,7 +278,6 @@ class Sac:
                     )
 
                 # Synapse object (source of conductance)
-                # syns["syn"][i] = h.Exp2Syn(pos)
                 syns["syn"].append(h.Exp2Syn(pos))
                 syns["syn"][i].tau1 = props["tau1"]
                 syns["syn"][i].tau2 = props["tau2"]
@@ -485,9 +311,7 @@ class Sac:
         total_l = pre_term_l + self.term_l
         dir_sign = 1 if self.forward else -1
         o_x, o_y = self.origin
-        self.initial_dend_x_origin = o_x + (
-            (total_l + self.gaba_props["locs"][0]) / -2 * dir_sign
-        )
+        self.initial_dend_x_origin = o_x + ((total_l + 15.0) / -2 * dir_sign)
         self.dend_x_origin = self.initial_dend_x_origin + (
             self.initial_dend_l * dir_sign
         )
@@ -495,7 +319,6 @@ class Sac:
         self.soma_x_origin = self.initial_dend_x_origin + (
             self.soma_l / 2 * dir_sign * -1
         )
-        self.gaba_x_loc = self.initial_dend_x_origin + (total_l * dir_sign)
         self.bp_xy_locs = {
             k: {
                 "x": [dir_sign * l + self.initial_dend_x_origin for l in locs],
@@ -508,8 +331,8 @@ class Sac:
     def create_neuron(self):
         # create compartments (using parameters in self.__dict__)
         self.soma = self.create_soma()
-        self.initial, self.dend, self.term, self.sinks = self.create_dend()
-        self.all_dends = [self.initial, self.dend, self.term] + self.sinks
+        self.initial, self.dend, self.term = self.create_dend()
+        self.all_dends = [self.initial, self.dend, self.term]
         self.initial.connect(self.soma)
         self.create_synapses()  # generate synapses on dendrite
 
@@ -562,58 +385,11 @@ class Sac:
 
 
 class SacPair:
-    def __init__(self, sac_params=None, wired_gaba=True, seed=0):
+    def __init__(self, sac_params=None, seed=0):
         self.sacs = {
             "a": Sac("a", params=sac_params, seed=seed),
             "b": Sac("b", forward=False, params=sac_params, seed=seed + 1),
         }
-        self.wired_gaba = wired_gaba
-        self.wire_gaba()
-
-    def wire_gaba(self):
-        self.gaba_syns = {}
-        for n, sac in self.sacs.items():
-            self.gaba_syns[n] = []
-            for loc in sac.gaba_props["locs"]:
-                if loc <= sac.initial_dend_l:
-                    sac.initial.push()
-                    pos = np.round(loc / sac.initial_dend_l, decimals=5)
-                elif loc <= (sac.initial_dend_l + sac.dend_l):
-                    sac.dend.push()
-                    pos = np.round(
-                        max(0, loc - sac.initial_dend_l) / sac.dend_l, decimals=5
-                    )
-                else:
-                    sac.term.push()
-                    pos = np.round(
-                        min(max(0, loc - sac.initial_dend_l - sac.dend_l), sac.term_l,)
-                        / sac.term_l,
-                        decimals=5,
-                    )
-                syn = h.GradSyn(pos)
-                syn.k = sac.gaba_props["weight"]
-                syn.e = sac.gaba_props["rev"]
-                syn.order = sac.gaba_props["order"]
-                self.gaba_syns[n].append(syn)
-                h.pop_section()
-        for pre, post in [("a", "b"), ("b", "a")]:
-            pre_sac = self.sacs[pre]
-
-            for post_loc, post_syn in zip(
-                self.sacs[post].gaba_props["locs"], self.gaba_syns[post]
-            ):
-                tip_dist = post_loc - self.sacs[post].gaba_props["locs"][0]
-                if tip_dist < pre_sac.term_l:
-                    pre_sec = pre_sac.term
-                    pos = np.round(1 - tip_dist / pre_sac.term_l, decimals=5)
-                else:
-                    pre_sec = pre_sac.dend
-                    pos = np.round(
-                        (pre_sac.dend_l - (tip_dist - pre_sac.term_l)) / pre_sac.dend_l,
-                        decimals=5,
-                    )
-
-                h.setpointer(pre_sec(pos)._ref_cai, "capre", post_syn)
 
     def get_params_dict(self):
         return {n: sac.get_params_dict() for n, sac in self.sacs.items()}
@@ -644,11 +420,9 @@ class Runner:
         self.model = model
 
         # hoc environment parameters
-        # self.tstop = 4000  # [ms]
         self.tstop = 6000  # [ms]
         self.steps_per_ms = 1  # [10 = 10kHz]
         self.dt = 1  # [ms, .1 = 10kHz]
-        # self.v_init = -70
         self.v_init = -60
         self.celsius = 36.9
         self.set_hoc_params()
@@ -656,9 +430,7 @@ class Runner:
         self.config_stimulus()
         self.place_electrodes()
         self.unified = None
-        self.orig_gaba_weights = None
         self.orig_bp_props = None
-        self.orig_bp_vel_scaling = None
 
         self.vc = None
         self.vc_rec = None
@@ -711,9 +483,7 @@ class Runner:
             "empty_data",
             "empty_vc_data",
             "unified",
-            "orig_gaba_weights",
             "orig_bp_props",
-            "orig_bp_vel_scaling",
             "initialize_handler",
             "vc",
             "vc_rec",
@@ -789,7 +559,6 @@ class Runner:
                     print("%.2f" % velocities[i], end=" ", flush=True)
                 self.light_bar["speed"] = velocities[i]
                 self.scale_bps(velocities[i])
-                self.scale_gaba(velocities[i])
                 self.run(self.light_bar, 3)  # index of 0 degrees
 
             if not quiet:
@@ -813,11 +582,10 @@ class Runner:
 
     def scale_bps(self, vel):
         for n, sac in self.model.sacs.items():
-            for props, locs, loc_scale, vel_scale, bps in zip(
+            for props, locs, loc_scale, bps in zip(
                 sac.bp_props.values(),
                 sac.bp_locs.values(),
                 sac.bp_loc_scaling.values(),
-                sac.bp_vel_scaling.values(),
                 sac.bps.values(),
             ):
                 for i, loc in enumerate(locs):
@@ -828,11 +596,6 @@ class Runner:
                         w = loc_scale["weight"](loc, w)
                         t1 = loc_scale["tau1"](loc, t1)
                         t2 = loc_scale["tau2"](loc, t2)
-                    if sac.vel_scaling:
-                        w = vel_scale["weight"](vel, w)
-                        t1 = vel_scale["tau1"](vel, t1)
-                        t2 = vel_scale["tau2"](vel, t2)
-                    # bps["con"][i].weight[0] = w
                     bps["con"][i].weight = w
                     bps["syn"][i].tau1 = t1
                     bps["syn"][i].tau2 = t2
@@ -841,63 +604,26 @@ class Runner:
         for n, sac in self.model.sacs.items():
             for props, bps in zip(sac.bp_props.values(), sac.bps.values()):
                 for i in range(len(bps["syn"])):
-                    # bps["con"][i].weight[0] = props["weight"]
                     bps["con"][i].weight = props["weight"]
                     bps["syn"][i].tau1 = props["tau1"]
                     bps["syn"][i].tau2 = props["tau2"]
-
-    def scale_gaba(self, vel):
-        for (n, sac), syn in zip(
-            self.model.sacs.items(), self.model.gaba_syns.values()
-        ):
-            for s in syn:
-                s.k = sac.gaba_vel_scaling(vel, sac.gaba_props["weight"])
 
     def unscale_bps(self):
         for n, sac in self.model.sacs.items():
             for props, bps in zip(sac.bp_props.values(), sac.bps.values()):
                 for i in range(len(bps["syn"])):
-                    # bps["con"][i].weight[0] = props["weight"]
                     bps["con"][i].weight = props["weight"]
                     bps["syn"][i].tau1 = props["tau1"]
                     bps["syn"][i].tau2 = props["tau2"]
-
-    def remove_gaba(self):
-        if self.orig_gaba_weights is None:
-            self.orig_gaba_weights = {}
-            for (n, sac), syn in zip(
-                self.model.sacs.items(), self.model.gaba_syns.values()
-            ):
-                self.orig_gaba_weights[n] = float(sac.gaba_props["weight"])
-                sac.gaba_props["weight"] = 0.0
-                for s in syn:
-                    s.k = 0.0
-
-    def restore_gaba(self):
-        if self.orig_gaba_weights is not None:
-            for (n, sac), syn in zip(
-                self.model.sacs.items(), self.model.gaba_syns.values()
-            ):
-                self.model.sacs[n].gaba_props["weight"] = float(
-                    self.orig_gaba_weights[n]
-                )
-                for s in syn:
-                    s.k = float(self.orig_gaba_weights[n])
-            self.orig_gaba_weights = None
 
     def unify_bps(self, bp_type):
         self.unified = bp_type
         if self.orig_bp_props is None:
             self.orig_bp_props = {}
-            self.orig_bp_vel_scaling = {}
             for n, sac in self.model.sacs.items():
                 self.orig_bp_props[n] = deepcopy(sac.bp_props)
-                self.orig_bp_vel_scaling[n] = deepcopy(sac.bp_vel_scaling)
                 for k in sac.bp_props.keys():
                     sac.bp_props[k] = deepcopy(self.orig_bp_props[n][bp_type])
-                    sac.bp_vel_scaling[k] = deepcopy(
-                        self.orig_bp_vel_scaling[n][bp_type]
-                    )
                 for bps in sac.bps.values():
                     for syn in bps["syn"]:
                         # unified, so trans is fine either way
@@ -908,18 +634,17 @@ class Runner:
         if self.orig_bp_props is not None:
             for n, sac in self.model.sacs.items():
                 sac.bp_props = deepcopy(self.orig_bp_props[n])
-                sac.bp_vel_scaling = deepcopy(self.orig_bp_vel_scaling[n])
                 for bps, props in zip(sac.bps.values(), sac.bp_props.values()):
                     for syn in bps["syn"]:
                         syn.tau1 = props["tau1"]
                         syn.tau2 = props["tau2"]
-            self.orig_bp_props, self.orig_bp_vel_scaling = None, None
+            self.orig_bp_props = None
 
     def velocity_mechanism_run(
         self,
         velocities=[0.1, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2],
         mech_trials=1,
-        conds={"control", "no_gaba", "all_trans", "no_gaba_trans", "no_gaba_sust"},
+        conds={"control", "all_trans"},
         quiet=False,
     ):
         data = {}
@@ -929,15 +654,6 @@ class Runner:
             data["control"] = self.velocity_run(
                 velocities=velocities, n_trials=mech_trials, quiet=quiet
             )
-
-        if "no_gaba" in conds:
-            if not quiet:
-                print("No GABA run:")
-            self.remove_gaba()
-            data["no_gaba"] = self.velocity_run(
-                velocities=velocities, n_trials=mech_trials, quiet=quiet
-            )
-            self.restore_gaba()
 
         if "all_trans" in conds:
             if not quiet:
@@ -955,28 +671,6 @@ class Runner:
             data["all_sust"] = self.velocity_run(
                 velocities=velocities, n_trials=mech_trials, quiet=quiet
             )
-            self.restore_bps()
-
-        if "no_gaba_trans" in conds:
-            if not quiet:
-                print("No Mechanism run (all transient):")
-            self.remove_gaba()
-            self.unify_bps("trans")
-            data["no_gaba_trans"] = self.velocity_run(
-                velocities=velocities, n_trials=mech_trials, quiet=quiet
-            )
-            self.restore_gaba()
-            self.restore_bps()
-
-        if "no_gaba_sust" in conds:
-            if not quiet:
-                print("No Mechanism run (all sustained):")
-            self.remove_gaba()
-            self.unify_bps("sust")
-            data["no_gaba_sust"] = self.velocity_run(
-                velocities=velocities, n_trials=mech_trials, quiet=quiet
-            )
-            self.restore_gaba()
             self.restore_bps()
 
         return data
@@ -1001,8 +695,8 @@ class Runner:
                 del data
 
     def place_electrodes(self):
-        self.recs = {"soma": {}, "term": {}, "gaba": {}, "bps": {}}
-        self.data = {"soma": {}, "term": {}, "gaba": {}, "bps": {}}
+        self.recs = {"soma": {}, "term": {}, "bps": {}}
+        self.data = {"soma": {}, "term": {}, "bps": {}}
         for n, sac in self.model.sacs.items():
             for p in ["soma", "term"]:
                 self.recs[p][n] = {
@@ -1028,12 +722,6 @@ class Runner:
                         self.data["bps"][n][k][i][s] = []
                         self.recs["bps"][n][k][i][s].record(getattr(syn, "_ref_%s" % s))
 
-            self.recs["gaba"][n], self.data["gaba"][n] = {}, {}
-            for i, syn in enumerate(self.model.gaba_syns[n]):
-                self.recs["gaba"][n][i] = {"i": h.Vector(), "g": h.Vector()}
-                self.data["gaba"][n][i] = {"i": [], "g": []}
-                self.recs["gaba"][n][i]["i"].record(syn._ref_i)
-                self.recs["gaba"][n][i]["g"].record(syn._ref_g)
         self.empty_data = deepcopy(self.data)  # for resetting
 
     def place_vc(self, targets=["a", "b"], hold=-60, block_vgcs=True):
@@ -1078,10 +766,6 @@ class Runner:
                         for i, r in bp_rs.items():
                             for k in ["i", "g"]:
                                 ds[n][typ][i][k].append(np.array(r[k]))
-                elif p == "gaba":
-                    for i in rs[n].keys():
-                        for k in ["i", "g"]:
-                            ds[n][i][k].append(np.array(rs[n][i][k]))
                 else:
                     for k in ["i", "g"]:
                         ds[n][k].append(np.array(rs[n][k]))

@@ -18,7 +18,7 @@ def distribution_run(
     dist_trials=16,
     batch=8,
     mech_trials=1,
-    conds={"no_gaba"},
+    conds={"control"},
     velocities=[0.05, 0.1, 0.15, 0.2, 0.25, 0.5, 0.75, 1, 1.25, 1.5],
 ):
     global distrib_repeat  # required to allow pickling for Pool
@@ -59,7 +59,7 @@ def incremental_sust_removal_run(
     sac_params,
     batch=2,
     mech_trials=10,
-    conds={"no_gaba"},
+    conds={"control"},
     velocities=[0.05, 0.1, 0.15, 0.2, 0.25, 0.5, 0.75, 1, 1.25, 1.5],
 ):
     global sust_removal_run  # required to allow pickling for Pool

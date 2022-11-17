@@ -12,9 +12,6 @@ from matplotlib.animation import FuncAnimation
 # local imports (found in this repo)
 from utils import *
 
-# TODO: right now the multiple GABA synapses are simply summed and represented
-# as a single arrow each on the schematic. Should break them up.
-
 
 class SacSacAnimator:
     def __init__(
@@ -29,7 +26,7 @@ class SacSacAnimator:
         reveal_time=False,
     ):
         self.exp_params = exp_params
-        self.model_params = model_params  # TODO: improve to a dict of conditions
+        self.model_params = model_params
         self.exps = exps
         # HACK: create basic summed bipolar measures for easier plotting for now
         for cond in self.exps.keys():
@@ -41,13 +38,6 @@ class SacSacAnimator:
                     for m in ["g", "i"]
                 }
                 for n, sac in exps[cond]["bps"].items()
-            }
-            self.exps[cond]["combined_gaba"] = {
-                n: {
-                    m: np.sum([syn[m] for syn in sac.values()], axis=0)
-                    for m in ["g", "i"]
-                }
-                for n, sac in exps[cond]["gaba"].items()
             }
         self.y_off = y_off
         self.bp_offset, self.bp_width, self.bp_height = bp_offset, bp_width, bp_height
