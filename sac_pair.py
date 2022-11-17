@@ -2,7 +2,6 @@ from neuron import h
 
 h.load_file("stdgui.hoc")  # headless, still sets up environment
 
-import os
 import json
 from copy import deepcopy
 import numpy as np
